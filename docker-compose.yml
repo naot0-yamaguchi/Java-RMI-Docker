@@ -1,0 +1,49 @@
+version: '3'
+
+services:
+  rmi-server-build:
+    image: openjdk:11
+    volumes:
+      - ./src:/app/src
+    command: ["javac", "/app/src/jp/co/rmi/MyRMIServer.java", "/app/src/jp/co/rmi/MyRMIServerImpl.java"]
+    entrypoint: ["sh", "-c", "jar cfe /app/MyRMIServer.jar jp.co.rmi.MyRMIServerImpl /app/src/jp/co/rmi/*.class"]
+    depends_on:
+      - cleanup-local
+
+  rmi-client-build:
+    image: openjdk:11
+    volumes:
+      - ./src:/app/src
+    command: ["javac", "/app/src/jp/co/rmi/MyRMIClient.java", "/app/src/jp/co/rmi/MyRMIClientImpl.java"]
+    entrypoint: ["sh", "-c", "jar cfe /app/MyRMIClient.jar jp.co.rmi.MyRMIClientImpl /app/src/jp/co/rmi/*.class"]
+    depends_on:
+      - cleanup-local
+
+  rmi-server:
+    image: openjdk:11
+    volumes:
+      - ./src/jp/co/rmi/MyRMIServer.jar:/app/MyRMIServer.jar
+      - ./src/java.policy:/app/java.policy
+    ports:
+      - "1099:1099"
+    depends_on:
+      - rmi-server-build
+    command: ["java", "-Djava.security.policy=/app/java.policy", "-Djava.rmi.server.codebase=http://rmi-server:1099/MyRMIServer.jar", "-jar", "/app/MyRMIServer.jar"]
+    entrypoint: ["sh", "-c", "rm -f /app/src/jp/co/rmi/*.class"]
+
+  rmi-client:
+    image: openjdk:11
+    volumes:
+      - ./src/jp/co/rmi/MyRMIClient.jar:/app/MyRMIClient.jar
+      - ./src/java.policy:/app/java.policy
+    depends_on:
+      - rmi-client-build
+      - rmi-server
+    command: ["java", "-Djava.security.policy=/app/java.policy", "-jar", "/app/MyRMIClient.jar"]
+    entrypoint: ["sh", "-c", "rm -f /app/src/jp/co/rmi/*.class"]
+
+  cleanup-local:
+    image: openjdk:11
+    volumes:
+      - ./src:/app/src
+    entrypoint: ["sh", "-c", "rm -f /app/src/jp/co/rmi/*.class /app/src/jp/co/rmi/*.jar"]
