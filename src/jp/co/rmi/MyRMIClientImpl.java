@@ -1,3 +1,5 @@
+package jp.co.rmi;
+
 import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.UnknownHostException;
